@@ -636,53 +636,18 @@ abstract contract Ownable is Context {
     }
 }
 
-interface IERC20 {
-    function totalSupply() external view returns (uint256);
-    function decimals() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
+pragma solidity >=0.8.7;
 
-contract TransferContract is Ownable {
-
-    using Address for address;
-
-    IERC20  filToken = IERC20(0xC9882dEF23bc42D53895b8361D0b1EDC7570Bc6A);
-
-    function transferToken(address _to, uint256 _value) internal returns (bool){
-        return filToken.transfer(_to, _value);
-    }
-
-    function transferFromToken(address _from, address _to, uint256 _value) internal returns (bool) {
-        return filToken.transferFrom(_from, _to, _value);
-    }
-
-    function balanceOfToken(address _from) internal view returns (uint256) {
-        return filToken.balanceOf(_from);
-    }
-
-    function setERC20(IERC20 fil) public onlyOwner {
-        filToken = fil;
-    }
-}
-
-pragma solidity >=0.7.0 <0.9.0;
-
-contract PCLD_SERIES_I is ERC721Enumerable, Ownable, TransferContract {
+contract PCLD_SERIES_II is ERC721Enumerable, Ownable {
 
     using Strings for uint256;
 
     event Remark(address indexed from, address indexed to, string indexed remark, uint256 tokenId);
 
-    string baseURI = "https://ipfs.fastiii.top:18088/ipfs/QmYC9admJddFof4wiSgD2n3JdpPRfh5GZqbDP6EuuGL9ug/";
+    string baseURI = "https://ipfs.fastiii.top:18088/ipfs/QmZpebTzckkv7dwoJyFgWpGbeRNNePP4QbW25toFWPBu6i/";
     uint256 public maxMintAmount = 50;
-    uint256 public maxSupply = 1000000;         
-    uint256 public cost = 1 ether;
+    uint256 private maxSupply = 200000;         
+    uint256 private cost = 0.16 ether;
     bool public paused = true;
 
     constructor() ERC721("PGNFT CLUB  CIVILIZATION RABBIT","PCCR") {}
@@ -693,13 +658,13 @@ contract PCLD_SERIES_I is ERC721Enumerable, Ownable, TransferContract {
     }
 
     // public
-    function mint(uint256 _mintAmount) public{
+    function mint(uint256 _mintAmount) public payable {
         uint256 supply = totalSupply();
-        require(!paused);
-        require(_mintAmount > 0);
-        require(_mintAmount <= maxMintAmount);
-        require(supply + _mintAmount <= maxSupply);
-        require(transferFromToken(msg.sender,address(this),cost*_mintAmount), "invalid price");
+        require(!paused, "The Contract is Paused");
+        require(_mintAmount > 0, "Mint Amount should bigger than 0");
+        require(_mintAmount <= maxMintAmount, "Mint Amount should not exceeds max mint limit");
+        require(supply + _mintAmount <= maxSupply, "Exceeds Max Supply");
+        require(msg.value > cost * _mintAmount - 1, "Insufficient funds");
         for (uint256 i = 1; i <= _mintAmount; i++) {
             _safeMint(msg.sender, supply + i);
         }
@@ -724,13 +689,20 @@ contract PCLD_SERIES_I is ERC721Enumerable, Ownable, TransferContract {
             ? string(abi.encodePacked(currentBaseURI, tokenId.toString()))
             : "";
     }
+
+    event SetMaxMintAmountEvent(uint256 amount);
     function setmaxMintAmount(uint256 _newmaxMintAmount) public onlyOwner() {
+        require(_newmaxMintAmount <= 50, "The Max Mint Amount is limited to 50, You should have to provide a smaller value");
         maxMintAmount = _newmaxMintAmount;
+        emit SetMaxMintAmountEvent(_newmaxMintAmount);
     }
+
     function pause(bool _state) public onlyOwner {
        paused = _state;
     }
+    
     function withdraw() public payable onlyOwner {
-        transferToken(msg.sender, address(this).balance);
+        (bool success, ) = payable(msg.sender).call{value: address(this).balance}("");
+        require(success);
     }
 }
