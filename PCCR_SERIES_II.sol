@@ -641,9 +641,6 @@ pragma solidity >=0.8.7;
 contract PCLD_SERIES_II is ERC721Enumerable, Ownable {
 
     using Strings for uint256;
-
-    event Remark(address indexed from, address indexed to, string indexed remark, uint256 tokenId);
-
     string baseURI = "https://ipfs.fastiii.top:18088/ipfs/QmZpebTzckkv7dwoJyFgWpGbeRNNePP4QbW25toFWPBu6i/";
     uint256 public maxMintAmount = 50;
     uint256 private maxSupply = 200000;         
